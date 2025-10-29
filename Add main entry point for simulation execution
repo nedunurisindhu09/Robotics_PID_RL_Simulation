@@ -1,0 +1,55 @@
+# main.py
+# Entry point for Robotics_PID_RL_Simulation
+# Provides CLI-style options to run PID, RL, or comparison simulations.
+
+import argparse
+from PID_Controller import PIDController
+from RL_Agent import train, evaluate, PIDTuningEnv
+from Simulation_Environment import simulate_pid, simulate_rl, compare_pid_vs_rl
+
+def run_pid():
+    """
+    Runs a standalone PID controller simulation.
+    """
+    print("=== Running Classical PID Simulation ===")
+    results = simulate_pid(setpoint=1.0, steps=200)
+    print("PID Simulation completed. Plot saved in results folder.")
+
+def run_rl():
+    """
+    Trains and evaluates a Reinforcement Learning agent to tune PID gains.
+    """
+    print("=== Running RL-Based PID Tuning Simulation ===")
+    model, env = train(save_dir="models", total_timesteps=20000)
+    evaluate(model, env, episodes=3)
+    print("RL Training & Evaluation completed. Results saved in results folder.")
+
+def run_comparison():
+    """
+    Runs both PID and RL simulations and compares their performance.
+    """
+    print("=== Running PID vs RL Comparison Simulation ===")
+    compare_pid_vs_rl()
+    print("Comparison plot generated successfully.")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Robotics_PID_RL_Simulation: Compare PID vs RL-based control performance."
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["pid", "rl", "compare"],
+        default="compare",
+        help="Select which simulation to run: pid / rl / compare",
+    )
+    args = parser.parse_args()
+
+    if args.mode == "pid":
+        run_pid()
+    elif args.mode == "rl":
+        run_rl()
+    else:
+        run_comparison()
+
+if __name__ == "__main__":
+    main()
