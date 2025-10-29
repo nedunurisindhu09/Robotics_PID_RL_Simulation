@@ -1,0 +1,70 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from PID_Controller import PIDController
+from RL_Agent import PIDTuningEnv, train, evaluate
+
+def simulate_pid(setpoint=1.0, steps=200):
+    """
+    Runs a simple PID control simulation for a static setpoint.
+    Returns the system output for visualization.
+    """
+    pid = PIDController(kp=2.0, ki=0.5, kd=0.1)
+    actual = 0.0
+    output_data = []
+    for _ in range(steps):
+        control = pid.compute(setpoint, actual)
+        actual += control * 0.05  # simplified system response
+        output_data.append(actual)
+    return np.array(output_data)
+
+
+def simulate_rl(total_timesteps=20000):
+    """
+    Trains and evaluates an RL agent using PPO for PID tuning.
+    Returns the measurement trajectory from the trained model.
+    """
+    model, env = train(save_dir="models", total_timesteps=total_timesteps)
+    print("Evaluating RL-tuned controller...")
+    evaluate(model, env, episodes=3)
+
+    obs = env.reset()
+    measurements = []
+    targets = []
+    done = False
+    while not done:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = env.step(action)
+        measurements.append(float(obs[2]))
+        targets.append(float(obs[3]))
+    return np.array(measurements), np.array(targets)
+
+
+def compare_pid_vs_rl():
+    """
+    Runs both PID and RL simulations and plots the comparison.
+    """
+    print("Running baseline PID simulation...")
+    pid_results = simulate_pid(setpoint=1.0, steps=200)
+
+    print("Running RL-based simulation (this may take a few minutes)...")
+    rl_measurements, rl_targets = simulate_rl(total_timesteps=10000)
+
+    # Visualization
+    plt.figure(figsize=(8, 4))
+    plt.plot(pid_results, label="PID Output (Fixed Gains)")
+    plt.plot(rl_measurements, label="RL-Tuned Output")
+    plt.plot(rl_targets, '--', label="Setpoint / Target")
+    plt.xlabel("Time Steps")
+    plt.ylabel("System Output")
+    plt.title("Comparison: Classical PID vs RL-Tuned PID")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("results/PID_vs_RL_Comparison.png")
+    plt.show()
+
+    print("Comparison plot saved to: results/PID_vs_RL_Comparison.png")
+
+
+if __name__ == "__main__":
+    compare_pid_vs_rl()
